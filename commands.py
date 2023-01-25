@@ -54,7 +54,7 @@ def checkWorkDay(day, dict):
         return True
 
 
-def chekNextApoint(thisday, thistime,  dict):
+def chekNextApoint(thisday, thistime,  jsondict):
     appoints = dict['appoint']
     daystr = datToString(thisday)
     dayappoint = appoints.get(daystr, False)
@@ -105,11 +105,30 @@ def nearestEntry(dict):
 
 
 
+def getWorkingMode(dict):
+    weekend = [
+        'Понедельник',
+        'Вторник',
+        'Среда',
+        'Четверг',
+        'Пятница',
+        'Суббота',
+        'Воскресение'
+    ]
+    startHour = hourStrtoTime(dict['unwork']['workhours'][0])
+    finishHour = hourStrtoTime(dict['unwork']['workhours'][1])
+    weekdays = getUnnworkWeekdays(dict)
+    weekdaystr = ''
+    for item in weekdays:
+        weekdaystr += weekend[item] + ', '
+    dinnerTimelist = jsondict['unwork']['dinerhours']
+    dinnerstr = ''
+    for item in dinnerTimelist:
+        dinnerstr += item + ', '
+    print(f'Работаю с {startHour} до {finishHour}, выходные: {weekdaystr[0:-2]}, перерыв на обед {dinnerstr}')
+    print(startHour, finishHour)
 
 
-# print(getUnnworkWeekdays(jsondict))
-print(nearestEntry(jsondict))
-
-# print(getUnworkTime(jsondict))
+getWorkingMode(jsondict)
 
 

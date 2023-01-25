@@ -69,6 +69,9 @@ def chekNextApoint(thisday, thistime,  dict):
         for item in appointtimesstr:
             item = hourStrtoTime(item)
             appointtimes.append(item)
+        dinnerTimelist = jsondict['unwork']['dinerhours']
+        for item in dinnerTimelist:
+            appointtimes.append(hourStrtoTime(item))
         appointtimes.sort()
         for item in appointtimes:
             if thistime >= hourStrtoTime(jsondict['unwork']['workhours'][1]):
@@ -80,11 +83,6 @@ def chekNextApoint(thisday, thistime,  dict):
                 thistime = time(thistime.hour+1)
     else:
         return thisday, thistime
-
-# 'Надо доделать проверку текущего времени на соответсвие рабочим часам, а так же проверить есть ли запись на текущий час'
-
-
-
 
 def nearestEntry(dict):
     nowtime = time(datetime.now().hour, datetime.now().minute)
@@ -111,7 +109,7 @@ def nearestEntry(dict):
 
 # print(getUnnworkWeekdays(jsondict))
 print(nearestEntry(jsondict))
-print(nearestEntry(jsondict))
+
 # print(getUnworkTime(jsondict))
 
 

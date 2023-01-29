@@ -41,6 +41,23 @@ def getUnnworkWeekdays(dict):
         unworkWeekdays.append(weekday)
     return unworkWeekdays
 
+def getDinnerTime(dict):
+    dinnerTimelistStr = dict['unwork']['dinerhours']
+    dinerTime = []
+    if len(dinnerTimelistStr) == 0:
+        return dinerTime
+    startTime, finishTime = hourStrtoTime(dict['unwork']['dinerhours'][0]), hourStrtoTime(
+        dict['unwork']['dinerhours'][1])
+    dinerDelta = finishTime.hour - startTime.hour
+    if dinerDelta == 1:
+        dinerTime = [startTime]
+    else:
+        for t in range(dinerDelta):
+            dinerTime.append(startTime.hour+t)
+    return dinerTime
+
+print(getDinnerTime(jsondict))
+
 
 
 def checkWorkDay(day, dict):
@@ -55,7 +72,7 @@ def checkWorkDay(day, dict):
 
 
 def chekNextApoint(thisday, thistime,  jsondict):
-    appoints = dict['appoint']
+    appoints = jsondict['appoint']
     daystr = datToString(thisday)
     dayappoint = appoints.get(daystr, False)
     workTime = hourStrtoTime(jsondict['unwork']['workhours'][0])
@@ -77,11 +94,22 @@ def chekNextApoint(thisday, thistime,  jsondict):
             if thistime >= hourStrtoTime(jsondict['unwork']['workhours'][1]):
                 return False
             if thistime < item:
-
+                if len(getDinnerTime(jsondict)) == 0:
+                    return thisday, thistime
+                else:
+                    for t in getDinnerTime(jsondict):
+                        if thistime.hour == t:
+                            thistime = time(thistime.hour+1)
                 return thisday, thistime
             else:
                 thistime = time(thistime.hour+1)
     else:
+        if len(getDinnerTime(jsondict)) == 0:
+            return thisday, thistime
+        else:
+            for t in getDinnerTime(jsondict):
+                if thistime.hour == t:
+                    thistime = time(thistime.hour+1)
         return thisday, thistime
 
 def nearestEntry(dict):
@@ -122,13 +150,12 @@ def getWorkingMode(dict):
     for item in weekdays:
         weekdaystr += weekend[item] + ', '
     dinnerTimelist = jsondict['unwork']['dinerhours']
-    dinnerstr = ''
-    for item in dinnerTimelist:
-        dinnerstr += item + ', '
-    print(f'Работаю с {startHour} до {finishHour}, выходные: {weekdaystr[0:-2]}, перерыв на обед {dinnerstr}')
-    print(startHour, finishHour)
+    print(f'Работаю с {startHour} до {finishHour}, выходные: {weekdaystr[0:-2]}, '
+          f'перерыв на обед c {dinnerTimelist[0]} до {dinnerTimelist[1]}')
 
 
-getWorkingMode(jsondict)
+
+print(nearestEntry(jsondict))
+
 
 

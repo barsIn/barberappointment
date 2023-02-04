@@ -1,21 +1,18 @@
 import json
 jsondict = {
     'client': {
-        'name': [
+        '+79233211212': [
             'Igor',
-            'Vasilii',
-            'Grigori',
-        ],
-        'telephone': [
-            89233211212,
-            89233336767,
-            89235559090,
-        ],
-        'tac': [
             '@ifr',
-            '@kil',
+        ],
+        '+79233336767': [
+            'Vasilii',
             '@olf',
-        ]
+        ],
+        '+789235559090': [
+            'Roman',
+            '@kil',
+        ],
     },
     'unwork': {
         'weekdays': [
@@ -92,4 +89,9 @@ def jsonread():
         dict = json.load(json_file)
 
     return dict
-jsonwright(jsondict)
+# jsonwright(jsondict)
+
+# list1 = {1, 2, 3, 4, 5}
+# list2 = {1, 3, 5}
+# result = list1 - list2
+# print(result)

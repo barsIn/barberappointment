@@ -95,3 +95,4 @@ def jsonread():
 # list2 = {1, 3, 5}
 # result = list1 - list2
 # print(result)
+

@@ -3,7 +3,10 @@ from datetime import datetime, date, time, timedelta
 from jsonfilepy import jsonread, jsonwright
 
 def strDateToDate(thisdate):
+
     newDate = date(int(thisdate[6:]), int(thisdate[3:5]), int(thisdate[0:2]))
+    if int(thisdate[6:]) < 2000:
+        raise ValueError
     return newDate
 
 strDateToDate('01.02.2023')
@@ -34,8 +37,9 @@ def timeToString(thisTime):
 
 
 def hourStrtoTime(strhour):
-    thour = time(int(strhour[0:2]), int(strhour[3:4]))
+    thour = time(int(strhour[0:2]), int(strhour[3:5]))
     return thour
+
 
 def getUnworkTime(dict):
     unworkTime = []
@@ -74,7 +78,8 @@ def getDinnerTime(dict):
     return dinerTime
 
 
-def checkWorkDay(day, jsondict):
+def checkWorkDay(day):
+    jsondict = jsonread()
     unnworkWeekdays = getUnnworkWeekdays(jsondict)
     unworkDays = getUnworkDays(jsondict)
     if day.weekday() in unnworkWeekdays:
@@ -150,22 +155,22 @@ def nearestEntry():
     if nowtime > unWorkHours:
         nowdate = nowdate + timedelta(days=1)
         nowtime = time(0, 1)
-    while(checkWorkDay(nowdate, jsondict) == False):
+    while(checkWorkDay(nowdate) == False):
         nowdate = nowdate + timedelta(days=1)
         nowtime = time(0, 1)
     while(True):
         nextAppointnt = chekNextApoint(nowdate, nowtime)
         if nextAppointnt:
-            return nextAppointnt
+            result = f'следующая запись на {nextAppointnt[0].strftime("%d.%m.%Y")} в {nextAppointnt[1].strftime("%H:%M")}'
+            return result
         else:
             nowdate = nowdate + timedelta(days=1)
             nowtime = time(0, 1)
 
 
-
-def getWorkingMode(dict):
+def getWorkingMode():
     dict = jsonread()
-    weekend = [
+    WEEKEND = [
         'Понедельник',
         'Вторник',
         'Среда',
@@ -179,9 +184,9 @@ def getWorkingMode(dict):
     weekdays = getUnnworkWeekdays(dict)
     weekdaystr = ''
     for item in weekdays:
-        weekdaystr += weekend[item] + ', '
+        weekdaystr += WEEKEND[item] + ', '
     dinnerTimelist = dict['unwork']['dinerhours']
-    result = f'Работаю с {startHour} до {finishHour}, выходные: {weekdaystr[0:-2]}, перерыв на обед c {dinnerTimelist[0]}до {dinnerTimelist[1]}'
+    result = f'Работаю с {startHour.strftime("%H:%M")} до {finishHour.strftime("%H:%M")}, выходные: {weekdaystr[0:-2]}, перерыв на обед c {dinnerTimelist[0]} до {dinnerTimelist[1]}'
     return result
 
 
@@ -207,6 +212,12 @@ def makeAppoint(name, telephone, tac, thisDate, thisTime, barbtype):
 
 def getUnbusyTimes(askedDate):
     jsondict = jsonread()
+    try:
+        strDateToDate(askedDate)
+    except:
+        return 'Неверный формат даты'
+    if not checkWorkDay(strDateToDate(askedDate)):
+        return 'В этот день выходной'
     dinnerTime = getDinnerTime(jsondict)
     strtTime = hourStrtoTime(jsondict['unwork']['workhours'][0])
     finishTime = hourStrtoTime(jsondict['unwork']['workhours'][1])
@@ -220,7 +231,6 @@ def getUnbusyTimes(askedDate):
         for t in busyStrlist:
             busylist.append(hourStrtoTime(t))
     busylist = busylist + dinnerTime
-    print(busylist)
     for t in timeList:
         if t not in busylist:
             resultTimelist.append(t)
@@ -228,8 +238,6 @@ def getUnbusyTimes(askedDate):
 
 def deleteAppoint(telephone, tac):
     jsondict = jsonread()
-    if not (checkClient(telephone, jsondict)):
-        return f'У вас нет записей'
     appdates = jsondict['appoint'].keys()
     accapoint = False
     for appointday in appdates:
@@ -237,14 +245,153 @@ def deleteAppoint(telephone, tac):
         for thistime in times:
             if jsondict['appoint'][appointday][thistime][0] == tac or jsondict['appoint'][appointday][thistime][1] == telephone:
                 accapoint = [appointday, thistime]
+    if accapoint:
+        jsondict['appoint'][accapoint[0]].pop(accapoint[1])
     jsonwright(jsondict)
 
+deleteAppoint('+79233211713', '@tac')
+def checkAppoint(telephone):
+    jsondict = jsonread()
+    appdates = jsondict['appoint'].keys()
+    accapoint = []
+    for appointday in appdates:
+        times = jsondict['appoint'][appointday].keys()
+        for thistime in times:
+            if jsondict['appoint'][appointday][thistime][1] == telephone:
+                accapoint = [appointday, thistime]
+    if len(accapoint) != 2:
+        return 'Нет записей'
+    else:
+        return f'У Вас есть запись на {accapoint[0]} в {accapoint[1]}'
+
+checkAppoint('+79233211713')
+def weekedsToNumbers(weekeds):
+    WEEKEND = {
+        'Понедельник': 0,
+        'Вторник': 1,
+        'Среда': 2,
+        'Четверг': 3,
+        'Пятница': 4,
+        'Суббота': 5,
+        'Воскресение': 6
+    }
+    weekNumbers = []
+    weekeds = weekeds.replace(' ', '')
+    weekedsList = weekeds.split(',')
+    for i in range(len(weekedsList)):
+        weekedsList[i] = weekedsList[i].title()
+    for it in weekedsList:
+        weekNumbers.append(WEEKEND.get(it, False))
+    return weekNumbers
 
 
+# fdmin functions
+def makeWeekend(weekendsStr):
+    jsondict = jsonread()
+    WEEKEND = [
+        'Понедельник',
+        'Вторник',
+        'Среда',
+        'Четверг',
+        'Пятница',
+        'Суббота',
+        'Воскресение'
+    ]
+    answer = ''
+    if weekendsStr == 'Сброс' or 0:
+        jsondict['unwork']['weekdays'] = []
+        answer = 'Уcтановлен режим работы без выходных'
+    else:
+        jsondict['unwork']['weekdays'] = []
+        weekends = weekedsToNumbers(weekendsStr)
+        for i in range(len(weekends)):
+            if not weekends[i]:
+                answer += f'ошибка в {i+1} слове, проверь еще раз '
+            else:
+                jsondict['unwork']['weekdays'].append(i)
+                answer += f'{WEEKEND[i]} успешно добавлен к выходным'
+    jsonwright(jsondict)
+    return answer
+
+
+def addUnworckDay(unworckDay):
+    answer = ''
+    try:
+        strDateToDate(unworckDay)
+        jsondict = jsonread()
+        jsondict['unwork']['days'].append(unworckDay)
+        answer = f'{unworckDay} успешно добавлен к нерабочим дням.'
+        jsonwright(jsondict)
+    except ValueError:
+        answer = 'Неверный формат даты.'
+    return answer
+
+
+def setupWorkTime(workTimeStart, workTimeFinish):
+    answer = ''
+    try:
+        hourStrtoTime(workTimeStart)
+        hourStrtoTime(workTimeFinish)
+        if (int(workTimeStart[0:2]) > int(workTimeFinish[0:2])):
+            return 'Время окончания работы должно быть позже времени начала.'
+
+        jsondict = jsonread()
+        workTimelist = [workTimeStart, workTimeFinish]
+        jsondict['unwork']['workhours'] = workTimelist.copy()
+        answer = f'режим работы установлен с {workTimeStart} до {workTimeFinish}.'
+        jsonwright(jsondict)
+    except ValueError:
+        answer = 'Неверный формат времени, попробуй еще раз.'
+    return answer
+
+
+def getAppointstime(dayveiw):
+    answer = ''
+    try:
+        strDateToDate(dayveiw)
+    except ValueError:
+        return 'Неверный формат времени, попробуй еще раз.'
+    jsondict = jsonread()
+    if jsondict['appoint'].get(dayveiw, False):
+        appoints = list(jsondict['appoint'][dayveiw].keys())
+        return appoints
+    else:
+        return 'Нет записей'
+
+
+def todayAppoiintsview():
+    jsondict = jsonread()
+    thisDay = datToString(date.today())
+    appointsTime = getAppointstime(thisDay)
+    if appointsTime == 'Нет записей':
+        return 'Нет записей'
+    else:
+        appointsTime = list(map(hourStrtoTime, appointsTime))
+        result = 'На сегодня еще записи:\n'
+        for i in appointsTime:
+            if datetime.now().hour < i.hour:
+                result += f'{timeToString(i)} {jsondict["appoint"][thisDay][timeToString(i)][0]}, телефон {jsondict["appoint"][thisDay][timeToString(i)][1]}\n'
+    return result
+
+
+def dateAppointsview(dateview):
+    jsondict = jsonread()
+    appointsTime = getAppointstime(dateview)
+    if appointsTime == 'Нет записей':
+        return 'Нет записей'
+    else:
+        appointsTime = list(map(hourStrtoTime, appointsTime))
+        result = f'На {dateview} есть записи:\n'
+        for i in appointsTime:
+            result += f'{timeToString(i)} {jsondict["appoint"][dateview][timeToString(i)][0]}, телефон {jsondict["appoint"][dateview][timeToString(i)][1]}\n'
+    return result
+
+
+# jsondict = jsonread()
+# print(dateAppointsview('02.02.2023'))
 
 # makeAppoint('Viktoria', '+79233418990', '@vov', date(2023, 2, 2), time(11, 15), 'complex')
 # print(jsonread()['appoint'])
 # checkClient('Igor', jsonread())thistimes = time(10, 15)
 # thistimes.minute
-
 

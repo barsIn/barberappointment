@@ -9,7 +9,6 @@ def strDateToDate(thisdate):
         raise ValueError
     return newDate
 
-strDateToDate('01.02.2023')
 def datToString(thisdate):
     if thisdate.day < 10:
         daystr = f'0{thisdate.day}'
@@ -186,7 +185,10 @@ def getWorkingMode():
     for item in weekdays:
         weekdaystr += WEEKEND[item] + ', '
     dinnerTimelist = dict['unwork']['dinerhours']
-    result = f'Работаю с {startHour.strftime("%H:%M")} до {finishHour.strftime("%H:%M")}, выходные: {weekdaystr[0:-2]}, перерыв на обед c {dinnerTimelist[0]} до {dinnerTimelist[1]}'
+    if len(dinnerTimelist) == 0:
+        result = f'Работаю с {startHour.strftime("%H:%M")} до {finishHour.strftime("%H:%M")}, выходные: {weekdaystr[0:-2]}'
+    else:
+        result = f'Работаю с {startHour.strftime("%H:%M")} до {finishHour.strftime("%H:%M")}, выходные: {weekdaystr[0:-2]}, перерыв на обед c {dinnerTimelist[0]} до {dinnerTimelist[1]}'
     return result
 
 
@@ -247,6 +249,8 @@ def deleteAppoint(telephone, tac):
                 accapoint = [appointday, thistime]
     if accapoint:
         jsondict['appoint'][accapoint[0]].pop(accapoint[1])
+    else:
+        return 'Нет записей'
     jsonwright(jsondict)
 
 deleteAppoint('+79233211713', '@tac')
@@ -264,7 +268,6 @@ def checkAppoint(telephone):
     else:
         return f'У Вас есть запись на {accapoint[0]} в {accapoint[1]}'
 
-checkAppoint('+79233211713')
 def weekedsToNumbers(weekeds):
     WEEKEND = {
         'Понедельник': 0,
@@ -284,32 +287,29 @@ def weekedsToNumbers(weekeds):
         weekNumbers.append(WEEKEND.get(it, False))
     return weekNumbers
 
-
-# fdmin functions
+# admin functions
 def makeWeekend(weekendsStr):
     jsondict = jsonread()
-    WEEKEND = [
-        'Понедельник',
-        'Вторник',
-        'Среда',
-        'Четверг',
-        'Пятница',
-        'Суббота',
-        'Воскресение'
-    ]
+    WEEKEND = {
+        'Понедельник': 0,
+        'Вторник': 1,
+        'Среда': 2,
+        'Четверг': 3,
+        'Пятница': 4,
+        'Суббота': 5,
+        'Воскресение': 6
+    }
     answer = ''
-    if weekendsStr == 'Сброс' or 0:
+    if weekendsStr == 'Без выходных':
         jsondict['unwork']['weekdays'] = []
         answer = 'Уcтановлен режим работы без выходных'
     else:
-        jsondict['unwork']['weekdays'] = []
-        weekends = weekedsToNumbers(weekendsStr)
-        for i in range(len(weekends)):
-            if not weekends[i]:
-                answer += f'ошибка в {i+1} слове, проверь еще раз '
-            else:
-                jsondict['unwork']['weekdays'].append(i)
-                answer += f'{WEEKEND[i]} успешно добавлен к выходным'
+        if weekendsStr in WEEKEND.keys():
+            jsondict['unwork']['weekdays'] = []
+            jsondict['unwork']['weekdays'].append(WEEKEND[weekendsStr])
+            answer = f'{weekendsStr} успешно добавлен к выходным'
+        else:
+            answer = 'Ошибка в слове. Не пиши сам, тыкай кнопки'
     jsonwright(jsondict)
     return answer
 
@@ -367,6 +367,7 @@ def todayAppoiintsview():
         return 'Нет записей'
     else:
         appointsTime = list(map(hourStrtoTime, appointsTime))
+        print(appointsTime)
         result = 'На сегодня еще записи:\n'
         for i in appointsTime:
             if datetime.now().hour < i.hour:
